@@ -1,6 +1,7 @@
 import time
 from configparser import ConfigParser
 
+import winsound
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -45,15 +46,58 @@ class MainClass:
         self.open_browser()
         self.login()
 
-    def check_appointment(self):
-        WebDriverWait(self.browser, 9999).until(EC.presence_of_element_located((By.XPATH, '//*[@id="LocationId"]')))
-        select = Select(self.browser.find_element_by_xpath('//*[@id="LocationId"]'))
+    def check_appointment(self, trial):
+        global do_refresh
+        global selected_visa
+        print(f"Retry No.{trial}")
 
-        time.sleep(60)
-        self.browser.refresh()
+        do_refresh = "X"
+        for x in [1, 6, 13]:
+            WebDriverWait(self.browser, 9999).until(EC.presence_of_element_located((By.XPATH, '//*[@id="LocationId"]')))
+            WebDriverWait(self.browser, 9999).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="LocationId"]')))
+            select_center = Select(self.browser.find_element_by_xpath('//*[@id="LocationId"]'))
+            select_center.select_by_index(x)
+            time.sleep(2)
+            if "There are no open seats available for selected center" in self.browser.page_source:
+                print(f"There are no seats in {select_center.options[x].text}")
+            else:
+                if EC.element_to_be_clickable((By.XPATH, '//*[@id="VisaCategoryId"]')):
+                    select_category = Select(self.browser.find_element(by=By.XPATH, value='//*[@id="VisaCategoryId"]'))
+                    select_category.select_by_value('302')
+                    time.sleep(2)
+                    if "There are no open seats available for selected center" in self.browser.page_source:
+                        print(f"There are no seats in {select_center.options[x].text}")
+                    else:
+                        print(f"There are some seats in {select_center.options[x].text}")
+                        do_refresh = ""
+                        selected_visa = "X"
+                        break
+                else:
+                    print(f"Error")
+                    self.check_appointment(trial + 1)
+
+        if do_refresh is not None:
+            time.sleep(60)
+            self.check_appointment(trial + 1)
+        else:
+            if selected_visa is None:
+                WebDriverWait(self.browser, 9999).until(
+                    EC.element_to_be_clickable((By.XPATH, '//*[@id="VisaCategoryId"]')))
+                select = Select(self.browser.find_element(by=By.XPATH, value='//*[@id="VisaCategoryId"]'))
+                select.select_by_value('302')
+
+            winsound.Beep(440, 200000)
+
+            WebDriverWait(self.browser, 600).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="dvEarliestDateLnk"]')))
+            WebDriverWait(self.browser, 9999).until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="dvEarliestDateLnk"]')))
+
+            # WebDriverWait(self.browser, 9999).until(
+            #     EC.element_to_be_clickable((By.XPATH, "//span[normalize-space()='Continue']")))
 
     def login(self):
-        self.browser.get((self.url))
+        self.browser.get(self.url)
 
         if "You are now in line." in self.browser.page_source:
             print("You are now in queue.")
@@ -66,11 +110,14 @@ class MainClass:
         while "Schedule Appointment" not in self.browser.page_source:
             time.sleep(1)
         else:
+            WebDriverWait(self.browser, 9999).until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="Accordion1"]/div/div[2]/div/ul/li[1]/a')))
             print("Successfully logged in!")
+            time.sleep(3)
             self.browser.find_element(by=By.XPATH,
                                       value='//*[@id="Accordion1"]/div/div[2]/div/ul/li[1]/a').click()
 
-        self.check_appointment()
+        self.check_appointment(1)
 
 
 if __name__ == '__main__':
