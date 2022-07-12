@@ -8,6 +8,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium_stealth import stealth
+from termcolor import colored
+
+import mail
 
 
 class MainClass:
@@ -50,59 +53,114 @@ class MainClass:
         global do_refresh
         global selected_visa
         print(f"Retry No.{trial}")
+        mail.telegram_bot_sendtext(f"Retry No.{trial}")
 
         do_refresh = "X"
-        for x in [1, 6, 13]:
-            WebDriverWait(self.browser, 9999).until(EC.presence_of_element_located((By.XPATH, '//*[@id="LocationId"]')))
-            WebDriverWait(self.browser, 9999).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="LocationId"]')))
+        selected_visa = " "
+
+        if "You are now in line." in self.browser.page_source:
+            print(colored("You are now in queue.", 'yellow'))
+            while "You are now in line." in self.browser.page_source:
+                WebDriverWait(self.browser, 99999).until(
+                    EC.presence_of_element_located((By.XPATH, '//*[@id="LocationId"]')))
+            else:
+                mail.telegram_bot_sendtext(f"Try to login again: line 65")
+                self.login()
+
+        for x in [6, 0, 13, 0, 1, 0]:
+            WebDriverWait(self.browser, 600).until(EC.presence_of_element_located((By.XPATH, '//*[@id="LocationId"]')))
+            WebDriverWait(self.browser, 600).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="LocationId"]')))
             select_center = Select(self.browser.find_element_by_xpath('//*[@id="LocationId"]'))
             select_center.select_by_index(x)
-            time.sleep(2)
-            if "There are no open seats available for selected center" in self.browser.page_source:
-                print(f"There are no seats in {select_center.options[x].text}")
-            else:
-                if EC.element_to_be_clickable((By.XPATH, '//*[@id="VisaCategoryId"]')):
-                    select_category = Select(self.browser.find_element(by=By.XPATH, value='//*[@id="VisaCategoryId"]'))
-                    select_category.select_by_value('302')
-                    time.sleep(2)
-                    if "There are no open seats available for selected center" in self.browser.page_source:
-                        print(f"There are no seats in {select_center.options[x].text}")
-                    else:
-                        print(f"There are some seats in {select_center.options[x].text}")
-                        do_refresh = ""
-                        selected_visa = "X"
-                        break
+            time.sleep(5)
+            if x != 0:
+                if "There are no open seats available for selected center" in self.browser.page_source:
+                    print(colored(f"There are no seats in {select_center.options[x].text}", 'red'))
                 else:
-                    print(f"Error")
-                    self.check_appointment(trial + 1)
+                    try:
+                        WebDriverWait(self.browser, 30).until(
+                            EC.presence_of_element_located((By.XPATH, '//*[@id="VisaCategoryId"]')))
+                        WebDriverWait(self.browser, 30).until(
+                            EC.element_to_be_clickable((By.XPATH, '//*[@id="VisaCategoryId"]')))
+
+                        select_category = Select(
+                            self.browser.find_element(by=By.XPATH, value='//*[@id="VisaCategoryId"]'))
+                        select_category.select_by_value('302')
+                        time.sleep(3)
+
+                        if "There are no open seats available for selected center" not in self.browser.page_source:
+                            print(colored(f"There are some seats in {select_center.options[x].text}", 'green'))
+                            do_refresh = ""
+                            selected_visa = "X"
+                            break
+
+                    except:
+                        if "There are no open seats available for selected center" in self.browser.page_source:
+                            print(colored(f"There are no seats in {select_center.options[x].text}", 'red'))
+                        else:
+                            for y in range(2):
+                                select_center.select_by_index(0)
+                                time.sleep(10)
+                                select_center.select_by_index(x)
+                                time.sleep(10)
+
+                            try:
+                                WebDriverWait(self.browser, 10).until(
+                                    EC.presence_of_element_located((By.XPATH, '//*[@id="VisaCategoryId"]')))
+                                WebDriverWait(self.browser, 10).until(
+                                    EC.element_to_be_clickable((By.XPATH, '//*[@id="VisaCategoryId"]')))
+
+                                select_category = Select(
+                                    self.browser.find_element(by=By.XPATH, value='//*[@id="VisaCategoryId"]'))
+                                select_category.select_by_value('302')
+                                time.sleep(3)
+
+                                if "There are no open seats available for selected center" not in self.browser.page_source:
+                                    print(colored(f"There are some seats in {select_center.options[x].text}", 'green'))
+                                    do_refresh = ""
+                                    selected_visa = "X"
+                                    break
+                            except:
+
+                                print(colored(f"Error. Press 'Continue'. ", 'red'))
+
+                                button_continue = WebDriverWait(self.browser, 15).until(
+                                    EC.presence_of_element_located((By.XPATH, '//*[@id="btnContinue"]')))
+                                button_continue.click()
+                                time.sleep(2)
+                                self.check_appointment(trial + 1)
 
         if do_refresh is not None:
             time.sleep(60)
             self.check_appointment(trial + 1)
         else:
-            if selected_visa is None:
-                WebDriverWait(self.browser, 9999).until(
-                    EC.element_to_be_clickable((By.XPATH, '//*[@id="VisaCategoryId"]')))
-                select = Select(self.browser.find_element(by=By.XPATH, value='//*[@id="VisaCategoryId"]'))
-                select.select_by_value('302')
+            mail.telegram_bot_sendtext(f"There are some seats in {select_center.options[x].text}")
+            winsound.Beep(440, 3000)
+            try:
+                if selected_visa is None:
+                    WebDriverWait(self.browser, 600).until(
+                        EC.element_to_be_clickable((By.XPATH, '//*[@id="VisaCategoryId"]')))
+                    select = Select(self.browser.find_element(by=By.XPATH, value='//*[@id="VisaCategoryId"]'))
+                    select.select_by_value('302')
 
-            winsound.Beep(440, 200000)
-
-            WebDriverWait(self.browser, 600).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@id="dvEarliestDateLnk"]')))
-            WebDriverWait(self.browser, 9999).until(
-                EC.element_to_be_clickable((By.XPATH, '//*[@id="dvEarliestDateLnk"]')))
-
-            # WebDriverWait(self.browser, 9999).until(
-            #     EC.element_to_be_clickable((By.XPATH, "//span[normalize-space()='Continue']")))
+                WebDriverWait(self.browser, 60).until(
+                    EC.presence_of_element_located((By.XPATH, '//*[@id="dvEarliestDateLnk"]')))
+                WebDriverWait(self.browser, 60).until(
+                    EC.element_to_be_clickable((By.XPATH, '//*[@id="dvEarliestDateLnk"]')))
+                self.browser.find_element_by_xpath((By.XPATH, '//*[@id="dvEarliestDateLnk"]')).click()
+                winsound.Beep(440, 200000)
+            except:
+                self.check_appointment(trial + 1)
 
     def login(self):
         self.browser.get(self.url)
 
         if "You are now in line." in self.browser.page_source:
-            print("You are now in queue.")
+            print(colored("You are now in queue.", 'yellow'))
 
-        WebDriverWait(self.browser, 9999).until(EC.presence_of_element_located((By.NAME, 'EmailId')))
+        WebDriverWait(self.browser, 99999).until(EC.presence_of_element_located((By.NAME, 'EmailId')))
+
+        winsound.Beep(440, 2000)
 
         self.browser.find_element(by=By.NAME, value='EmailId').send_keys(self.email_str)
         self.browser.find_element(by=By.NAME, value='Password').send_keys(self.pwd_str)
@@ -110,9 +168,9 @@ class MainClass:
         while "Schedule Appointment" not in self.browser.page_source:
             time.sleep(1)
         else:
-            WebDriverWait(self.browser, 9999).until(
+            WebDriverWait(self.browser, 600).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="Accordion1"]/div/div[2]/div/ul/li[1]/a')))
-            print("Successfully logged in!")
+            print(colored("Successfully logged in!", 'yellow'))
             time.sleep(3)
             self.browser.find_element(by=By.XPATH,
                                       value='//*[@id="Accordion1"]/div/div[2]/div/ul/li[1]/a').click()
