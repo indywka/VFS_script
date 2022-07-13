@@ -44,6 +44,7 @@ class MainClass:
                 webgl_vendor="Intel Inc.",
                 renderer="Intel Iris OpenGL Engine",
                 fix_hairline=True)
+        self.browser.get(self.url)
 
     def start(self):
         self.open_browser()
@@ -60,6 +61,7 @@ class MainClass:
 
         if "You are now in line." in self.browser.page_source:
             print(colored("You are now in queue.", 'yellow'))
+            mail.telegram_bot_sendtext("You are now in queue.")
             while "You are now in line." in self.browser.page_source:
                 WebDriverWait(self.browser, 99999).until(
                     EC.presence_of_element_located((By.XPATH, '//*[@id="LocationId"]')))
@@ -76,6 +78,7 @@ class MainClass:
             if x != 0:
                 if "There are no open seats available for selected center" in self.browser.page_source:
                     print(colored(f"There are no seats in {select_center.options[x].text}", 'red'))
+                    mail.telegram_bot_sendtext(f"There are no seats in {select_center.options[x].text}")
                 else:
                     try:
                         WebDriverWait(self.browser, 30).until(
@@ -90,6 +93,7 @@ class MainClass:
 
                         if "There are no open seats available for selected center" not in self.browser.page_source:
                             print(colored(f"There are some seats in {select_center.options[x].text}", 'green'))
+                            mail.telegram_bot_sendtext(f"There are some seats in {select_center.options[x].text}")
                             do_refresh = ""
                             selected_visa = "X"
                             break
@@ -97,6 +101,7 @@ class MainClass:
                     except:
                         if "There are no open seats available for selected center" in self.browser.page_source:
                             print(colored(f"There are no seats in {select_center.options[x].text}", 'red'))
+                            mail.telegram_bot_sendtext(f"There are no seats in {select_center.options[x].text}")
                         else:
                             for y in range(2):
                                 select_center.select_by_index(0)
@@ -117,24 +122,28 @@ class MainClass:
 
                                 if "There are no open seats available for selected center" not in self.browser.page_source:
                                     print(colored(f"There are some seats in {select_center.options[x].text}", 'green'))
+                                    mail.telegram_bot_sendtext(
+                                        f"There are some seats in {select_center.options[x].text}")
                                     do_refresh = ""
                                     selected_visa = "X"
                                     break
                             except:
 
                                 print(colored(f"Error. Press 'Continue'. ", 'red'))
+                                mail.telegram_bot_sendtext(f"Error. Press 'Schedule Appointment'. ")
 
-                                button_continue = WebDriverWait(self.browser, 15).until(
-                                    EC.presence_of_element_located((By.XPATH, '//*[@id="btnContinue"]')))
-                                button_continue.click()
-                                time.sleep(2)
+                                WebDriverWait(self.browser, 600).until(
+                                    EC.element_to_be_clickable(
+                                        (By.XPATH, '//*[@id="Accordion1"]/div/div[2]/div/ul/li[1]/a')))
+                                self.browser.find_element(by=By.XPATH,
+                                                          value='//*[@id="Accordion1"]/div/div[2]/div/ul/li[1]/a').click()
+                                time.sleep(30)
                                 self.check_appointment(trial + 1)
 
         if do_refresh is not None:
             time.sleep(60)
             self.check_appointment(trial + 1)
         else:
-            mail.telegram_bot_sendtext(f"There are some seats in {select_center.options[x].text}")
             winsound.Beep(440, 3000)
             try:
                 if selected_visa is None:
@@ -153,10 +162,11 @@ class MainClass:
                 self.check_appointment(trial + 1)
 
     def login(self):
-        self.browser.get(self.url)
-
         if "You are now in line." in self.browser.page_source:
             print(colored("You are now in queue.", 'yellow'))
+            mail.telegram_bot_sendtext("You are now in queue.")
+
+        time.sleep(1980)
 
         WebDriverWait(self.browser, 99999).until(EC.presence_of_element_located((By.NAME, 'EmailId')))
 
@@ -171,6 +181,7 @@ class MainClass:
             WebDriverWait(self.browser, 600).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="Accordion1"]/div/div[2]/div/ul/li[1]/a')))
             print(colored("Successfully logged in!", 'yellow'))
+            mail.telegram_bot_sendtext("Successfully logged in!")
             time.sleep(3)
             self.browser.find_element(by=By.XPATH,
                                       value='//*[@id="Accordion1"]/div/div[2]/div/ul/li[1]/a').click()
