@@ -54,22 +54,22 @@ class MainClass:
         global do_refresh
         global selected_visa
         print(f"Retry No.{trial}")
-        mail.telegram_bot_sendtext(f"Retry No.{trial}")
+        mail.telegram_bot_sendtext(f"_Retry No.{trial}_")
 
         do_refresh = "X"
         selected_visa = " "
 
         if "You are now in line." in self.browser.page_source:
-            print(colored("You are now in queue.", 'yellow'))
-            mail.telegram_bot_sendtext("You are now in queue.")
+            print(colored(f"You are now in queue.", 'yellow'))
+            mail.telegram_bot_sendtext(f"_You are now in queue._")
             while "You are now in line." in self.browser.page_source:
                 WebDriverWait(self.browser, 99999).until(
                     EC.presence_of_element_located((By.XPATH, '//*[@id="LocationId"]')))
             else:
-                mail.telegram_bot_sendtext(f"Try to login again: line 65")
+                mail.telegram_bot_sendtext(f"_Try to login again: line 69_")
                 self.login()
 
-        for x in [6, 0, 13, 0, 1, 0]:
+        for x in [6, 0, 13, 0, 1, 0, 2, 0, 3, 0, 7, 0, 8, 0]:
             WebDriverWait(self.browser, 600).until(EC.presence_of_element_located((By.XPATH, '//*[@id="LocationId"]')))
             WebDriverWait(self.browser, 600).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="LocationId"]')))
             select_center = Select(self.browser.find_element_by_xpath('//*[@id="LocationId"]'))
@@ -77,8 +77,8 @@ class MainClass:
             time.sleep(5)
             if x != 0:
                 if "There are no open seats available for selected center" in self.browser.page_source:
-                    print(colored(f"There are no seats in {select_center.options[x].text}", 'red'))
-                    mail.telegram_bot_sendtext(f"There are no seats in {select_center.options[x].text}")
+                    print(colored(f"There are NO seats in {select_center.options[x].text}", 'red'))
+                    mail.telegram_bot_sendtext(f"_There are NO seats in {select_center.options[x].text}_")
                 else:
                     try:
                         WebDriverWait(self.browser, 30).until(
@@ -92,16 +92,16 @@ class MainClass:
                         time.sleep(3)
 
                         if "There are no open seats available for selected center" not in self.browser.page_source:
-                            print(colored(f"There are some seats in {select_center.options[x].text}", 'green'))
-                            mail.telegram_bot_sendtext(f"There are some seats in {select_center.options[x].text}")
+                            print(colored(f"There are SOME seats in {select_center.options[x].text}", 'green'))
+                            mail.telegram_bot_sendtext(f"*There are SOME seats in {select_center.options[x].text}*")
                             do_refresh = ""
                             selected_visa = "X"
                             break
 
                     except:
                         if "There are no open seats available for selected center" in self.browser.page_source:
-                            print(colored(f"There are no seats in {select_center.options[x].text}", 'red'))
-                            mail.telegram_bot_sendtext(f"There are no seats in {select_center.options[x].text}")
+                            print(colored(f"There are NO seats in {select_center.options[x].text}", 'red'))
+                            mail.telegram_bot_sendtext(f"_There are NO seats in {select_center.options[x].text}_")
                         else:
                             for y in range(2):
                                 select_center.select_by_index(0)
@@ -121,16 +121,16 @@ class MainClass:
                                 time.sleep(3)
 
                                 if "There are no open seats available for selected center" not in self.browser.page_source:
-                                    print(colored(f"There are some seats in {select_center.options[x].text}", 'green'))
+                                    print(colored(f"There are SOME seats in {select_center.options[x].text}", 'green'))
                                     mail.telegram_bot_sendtext(
-                                        f"There are some seats in {select_center.options[x].text}")
+                                        f"*There are SOME seats in {select_center.options[x].text}*")
                                     do_refresh = ""
                                     selected_visa = "X"
                                     break
                             except:
 
                                 print(colored(f"Error. Press 'Continue'. ", 'red'))
-                                mail.telegram_bot_sendtext(f"Error. Press 'Schedule Appointment'. ")
+                                mail.telegram_bot_sendtext(f"_Error. Press 'Schedule Appointment'._")
 
                                 WebDriverWait(self.browser, 600).until(
                                     EC.element_to_be_clickable(
@@ -163,10 +163,11 @@ class MainClass:
 
     def login(self):
         if "You are now in line." in self.browser.page_source:
-            print(colored("You are now in queue.", 'yellow'))
-            mail.telegram_bot_sendtext("You are now in queue.")
+            print(colored(f"You are now in queue.", 'yellow'))
+            mail.telegram_bot_sendtext(f"_You are now in queue._")
 
-        time.sleep(1980)
+        self.browser.set_page_load_timeout(3000)
+        self.browser.implicitly_wait(3000)
 
         WebDriverWait(self.browser, 99999).until(EC.presence_of_element_located((By.NAME, 'EmailId')))
 
@@ -180,8 +181,8 @@ class MainClass:
         else:
             WebDriverWait(self.browser, 600).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="Accordion1"]/div/div[2]/div/ul/li[1]/a')))
-            print(colored("Successfully logged in!", 'yellow'))
-            mail.telegram_bot_sendtext("Successfully logged in!")
+            print(colored(f"Successfully logged in!", 'yellow'))
+            mail.telegram_bot_sendtext(f"_Successfully logged in!_")
             time.sleep(3)
             self.browser.find_element(by=By.XPATH,
                                       value='//*[@id="Accordion1"]/div/div[2]/div/ul/li[1]/a').click()
